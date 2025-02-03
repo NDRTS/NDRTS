@@ -1,0 +1,6 @@
+<launch>
+    <!-- Launch other launch files -->
+    <include file="$(find control)/launch/xbox_control.launch"/>
+    <include file="$(find control)/launch/engines.launch"/>
+    <!-- Add more includes for additional launch files -->
+</launch>

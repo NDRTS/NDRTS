@@ -1,0 +1,12 @@
+BACKGROUND,
+Car,
+Crosswalksign,
+Highwayentrancesign,
+Highwayexitsign,
+No-entryroadsign,
+Onewayroadsign,
+Parkingsign,
+Pedestrian,
+Prioritysign,
+Roundaboutsign,
+Stopsign

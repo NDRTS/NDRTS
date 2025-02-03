@@ -1,0 +1,6 @@
+<launch>
+    <!-- Launch other launch files -->
+    <include file="$(find vision)/launch/camera.launch"/>
+    <include file="$(find vision)/launch/detection.launch"/>
+    <!-- Add more includes for additional launch files -->
+</launch>

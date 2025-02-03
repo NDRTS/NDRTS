@@ -1,0 +1,7 @@
+<launch>
+    <!-- Launch other launch files -->
+    <include file="$(find vision)/launch/camera.launch"/>
+    <include file="$(find control)/launch/engines.launch"/>
+    <include file="$(find gps)/launch/gps.launch"/>
+    <!-- Add more includes for additional launch files -->
+</launch>

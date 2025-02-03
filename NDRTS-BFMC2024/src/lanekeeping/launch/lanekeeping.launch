@@ -1,0 +1,7 @@
+<launch>
+    <!-- Set the environment variables -->
+    <env name="PYTHONUNBUFFERED" value="1"/>
+    
+    <!-- Launch the Python script -->
+    <node pkg="lanekeeping" type="main.py" name="lane_detection_node" output="screen"/>
+</launch>

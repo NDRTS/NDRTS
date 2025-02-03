@@ -1,0 +1,7 @@
+<launch>
+    <!-- Set the environment variables -->
+    <env name="PYTHONUNBUFFERED" value="1"/>
+    
+    <!-- Launch the Python script -->
+    <node pkg="vision" type="custom_detect_semafor.py" name="semafor_detection_publisher" output="screen"/>
+</launch>
