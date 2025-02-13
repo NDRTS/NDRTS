@@ -1,0 +1,4 @@
+# Added the build directories to .gitignore
+/build
+/devel
+__pycache__

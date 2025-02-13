@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
@@ -21,12 +23,12 @@ bridge = CvBridge()
 
 # Citește etichetele claselor
 class_labels = []
-with open("/home/jetson/Desktop/NDRTS/src/vision/src/ssd/models/voc-model-labels.txt", "r") as f:
+with open("/home/jetson/Desktop/NDRTS/NDRTS-BFMC2024/src/vision/src/ssd/models/voc-model-labels.txt", "r") as f:
     class_labels = [line.strip() for line in f.readlines()]
 
 # Inițializează rețeaua de detecție
-net = jetson_inference.detectNet(argv=["--model=/home/jetson/Desktop/NDRTS/src/vision/src/ssd/models/mb2-ssd-lite.onnx", 
-                                       "--labels=/home/jetson/Desktop/NDRTS/src/vision/src/ssd/models/voc-model-labels.txt", 
+net = jetson_inference.detectNet(argv=["--model=/home/jetson/Desktop/NDRTS/NDRTS-BFMC2024/src/vision/src/ssd/models/mb2-ssd-lite.onnx", 
+                                       "--labels=/home/jetson/Desktop/NDRTS/NDRTS-BFMC2024/src/vision/src/ssd/models/voc-model-labels.txt", 
                                        "--input-blob=input_0", "--output-cvg=scores", "--output-bbox=boxes"], threshold=0.5)
 
 frame_rate = 0

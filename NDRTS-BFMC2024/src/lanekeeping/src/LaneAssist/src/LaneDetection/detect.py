@@ -20,7 +20,7 @@ class LaneDetection:
         self.width = width
         self.lk = lk
         self.config = configparser.ConfigParser()
-        self.config.read("/home/jetson/Desktop/NDRTS/src/lanekeeping/src/LaneAssist/config.ini")
+        self.config.read("/home/jetson/Desktop/NDRTS/NDRTS-BFMC2024/src/lanekeeping/src/LaneAssist/config.ini")
         self.custom_find_peaks = self.config["LANE_DETECT"].getboolean("custom_find_peaks")
         self.slices = int(self.config["LANE_DETECT"].get("slices"))
         self.print_lanes = self.config["LANE_DETECT"].getboolean("print_lanes")

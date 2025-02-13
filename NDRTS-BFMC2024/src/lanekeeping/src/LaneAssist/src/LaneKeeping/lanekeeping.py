@@ -64,7 +64,7 @@ class LaneKeeping:
         self.last_angle = 0.0
 
         self.config = configparser.ConfigParser()
-        self.config.read("/home/jetson/Desktop/NDRTS/src/lanekeeping/src/LaneAssist/config.ini")
+        self.config.read("/home/jetson/Desktop/NDRTS/NDRTS-BFMC2024/src/lanekeeping/src/LaneAssist/config.ini")
         self.steer_value_list = list()
         self.median_constant = int(self.config["LANE_KEEPING"].get("median_constant"))
         self.print_desire_lane = self.config["LANE_KEEPING"].getboolean("print_desire_lane")
