@@ -21,59 +21,51 @@ def get_key():
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     return key
 
-# Variables for control
-speed = 0
-steering = 0
+# Initialize control variables
+speed = 0      # Current speed
+steering = 0   # Current steering angle in degrees (range: -16 to 16)
+
+print("Script started. Use W/A/S/D to control speed/steering, X/C to set low speeds,")
+print("B to stop lane-keeping, N to resume lane-keeping, and Q to quit.")
 
 try:
-    print("Script started. Use W/A/S/D for control. Press Q to quit.")
     while not rospy.is_shutdown():
         key = get_key()
 
-        # Handle key presses for speed and steering
-        if key == 'w':  # Increase speed
+        # Adjust speed and steering based on key press
+        if key == 'w':      # Increase speed by 10
+            speed += 10
+        elif key == 's':    # Decrease speed by 10
+            speed -= 10
+        elif key == 'a':    # Turn left: decrease steering by 2 degrees, limit to -16
+            steering = max(steering - 1, -40)
+        elif key == 'd':    # Turn right: increase steering by 2 degrees, limit to 16
+            steering = min(steering + 1, 40)
+        elif key == 'x':    # Set low speed to 10
             speed = 10
-        elif key == 's':  # Decrease speed
-            speed = -10
-        elif key == 'a':  # Steer left
-            steering = -10
-        elif key == 'd':  # Steer right
-            steering = 10
-        elif key == 'x':  # Set low speed
-            speed = 10
-        elif key == 'c':  # Set low speed
+        elif key == 'c':    # Set low speed to 20
             speed = 20
-        elif key == 'y':  # Set maximum speed
-            speed = 50
-        elif key == 'b':  # Stop lane-keeping
+        elif key == 'b':    # Stop lane-keeping
             stop_lanekeeping_pub.publish(1)
             print("[INFO] stop_lanekeeping = 1 sent.")
-        elif key == 'n':  # Resume lane-keeping
+        elif key == 'n':    # Resume lane-keeping
             stop_lanekeeping_pub.publish(0)
             print("[INFO] stop_lanekeeping = 0 sent.")
-        elif key == 'q':  # Quit
+        elif key == 'q':    # Quit the script
             print("Exiting script.")
             break
 
-        # Reset speed or steering when certain keys are released
-        if key in ['w', 's']:  # Stop movement
-            speed = 0
-        if key in ['a', 'd']:  # Stop steering
-            steering = 0
-
         # Publish values to ROS topics
         speed_pub.publish(speed)
-        if abs(steering) > 3.5:  # Publish steering only if significant
-            steer_pub.publish(steering)
+        steer_pub.publish(steering)
 
         # Print current state for debugging
         print(f"[DEBUG] Speed: {speed}, Steering: {steering}")
 
-        # Pause to prevent high CPU usage
+        # Sleep briefly to prevent high CPU usage
         rospy.sleep(0.1)
 
 except Exception as e:
     print("Exception:", e)
 
-# End script
 print("Script stopped.")
