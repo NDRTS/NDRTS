@@ -1,71 +1,82 @@
 #!/usr/bin/env python3
 
-import cv2
+import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
-import rospy
-import numpy as np
+import cv2
 
-# Funcția pentru publicarea imaginilor de la camera
-def camera_publisher(video_source=0, topic_name='/camera/image_raw'):
-    # Inițializează nodul ROS
+def camera_publisher(topic_name='/camera/image_raw'):
+    # Initialize ROS node
     rospy.init_node('camera_publisher', anonymous=True)
     
-    # Creează un obiect CvBridge pentru conversia dintre OpenCV și ROS
+    # Create a CvBridge instance to convert between ROS and OpenCV images
     bridge = CvBridge()
     
-    # Creează un publisher ROS pentru a publica imagini pe un topic specificat
+    # Create a ROS publisher for the image topic
     image_pub = rospy.Publisher(topic_name, Image, queue_size=30)
     
-    # Deschide sursa video (implicit, camera implicită a sistemului)
-    cap = cv2.VideoCapture(video_source)
+    # Use a GStreamer pipeline to access the camera hardware efficiently.
+    # gst_pipeline = (
+    #     "v4l2src device=/dev/video0 ! "
+    #     "video/x-raw, width=640, height=480, framerate=30/1 ! "
+    #     "videoconvert ! "
+    #     "video/x-raw, format=BGR ! "
+    #     "appsink"
+    # )
+
+    gst_pipeline = (
+        "nvarguscamerasrc sensor-id=0 ! "
+        "video/x-raw(memory:NVMM), width=1920, height=1080, framerate=30/1 ! "
+        "nvvidconv flip-method=0 ! "
+        "video/x-raw, width=960, height=540, format=(string)BGRx ! "
+        "videoconvert ! "
+        "video/x-raw, format=(string)BGR ! appsink"
+    )
+
+    cap = cv2.VideoCapture(gst_pipeline, cv2.CAP_GSTREAMER)
     
-    # Verifică dacă camera a fost deschisă cu succes
     if not cap.isOpened():
-        rospy.logerr('Camera nu poate fi deschisă.')
+        rospy.logerr("Camera cannot be opened.")
         return
     
-    # Informații despre topicul pe care se publică imaginile
-    rospy.loginfo(f'Publicare imagini pe topicul {topic_name}.')
+    rospy.loginfo(f"Publishing images on topic: {topic_name}")
     
-    # Setează frecvența de publicare la 10Hz
-    rate = rospy.Rate(10)
-    
-    # Bucla principală de publicare a imaginilor
+    rate = rospy.Rate(10)  # Publish at 10Hz
     while not rospy.is_shutdown():
-        # Citește un frame de la cameră
         ret, frame = cap.read()
-        
-        # Verifică dacă frame-ul a fost citit cu succes
         if not ret:
-            rospy.logerr('Eroare la citirea frame-ului de la camera.')
+            rospy.logerr("Error reading frame from camera.")
             break
+
+        # --- GPU Processing (optional) ---
+        # Upload the frame to GPU memory
+        gpu_frame = cv2.cuda_GpuMat()
+        gpu_frame.upload(frame)
         
-        # Dacă frame-ul are 3 canale (RGB)
-        if frame.shape[2] == 3:  
-            # Convertește frame-ul din RGB în BGR (format utilizat de OpenCV)
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            
-            # Redimensionează frame-ul la 640x480 (dacă este necesar)
-            frame = cv2.resize(frame, (640, 480))
+        # Convert the frame to grayscale using the GPU
+        gpu_gray = cv2.cuda.cvtColor(gpu_frame, cv2.COLOR_BGR2GRAY)
         
-        # Convertește frame-ul din format OpenCV în mesaj ROS
-        img_msg = bridge.cv2_to_imgmsg(frame, encoding='bgr8')
+        # Download the processed image back to host memory
+        processed_frame = gpu_gray.download()
+        # ----------------------
         
-        # Publică mesajul pe topicul specificat
+        # --- Adjust Brightness ---
+        # Reduce brightness by scaling pixel values (alpha=0.9 reduces brightness by 10%)
+        adjusted_frame = cv2.convertScaleAbs(processed_frame, alpha=0.9, beta=0)
+        # -------------------------
+        
+        # Convert the adjusted frame into a ROS Image message (using mono8 encoding)
+        img_msg = bridge.cv2_to_imgmsg(processed_frame, encoding='mono8')
+        img_msg.header.stamp = rospy.Time.now()
+        img_msg.header.frame_id = "camera_frame"
         image_pub.publish(img_msg)
         
-        # Așteaptă până la următoarea iterație
         rate.sleep()
     
-    # Eliberează resursele camerei
     cap.release()
 
-# Punctul de intrare al scriptului
 if __name__ == '__main__':
     try:
-        # Apelează funcția de publicare a imaginilor
         camera_publisher()
     except rospy.ROSInterruptException:
-        # Gestionare excepție în cazul întreruperii ROS
         pass

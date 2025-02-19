@@ -520,7 +520,16 @@ class LaneDetection:
             of all the detected peaks
         """
 
-        src = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # Upload the frame to the GPU
+        gpu_frame = cv2.cuda_GpuMat()
+        gpu_frame.upload(frame)
+        
+        # Convert the frame to grayscale on the GPU
+        gpu_gray = cv2.cuda.cvtColor(gpu_frame, cv2.COLOR_BGR2GRAY)
+        
+        # Download the grayscale image back to host memory
+        src = gpu_gray.download()
+
         peaks = []
         lanes = []
         frames = []

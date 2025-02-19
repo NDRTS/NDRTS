@@ -38,19 +38,19 @@ try:
         elif key == 's':    # Decrease speed by 10
             speed -= 10
         elif key == 'a':    # Turn left: decrease steering by 2 degrees, limit to -16
-            steering = max(steering - 1, -40)
+            steering = max(steering - 5, -40)
         elif key == 'd':    # Turn right: increase steering by 2 degrees, limit to 16
-            steering = min(steering + 1, 40)
+            steering = min(steering + 5, 40)
         elif key == 'x':    # Set low speed to 10
             speed = 10
         elif key == 'c':    # Set low speed to 20
             speed = 20
         elif key == 'b':    # Stop lane-keeping
             stop_lanekeeping_pub.publish(1)
-            print("[INFO] stop_lanekeeping = 1 sent.")
+            print("[INFO] stop_lanekeeping sent.")
         elif key == 'n':    # Resume lane-keeping
             stop_lanekeeping_pub.publish(0)
-            print("[INFO] stop_lanekeeping = 0 sent.")
+            print("[INFO] start_lanekeeping sent.")
         elif key == 'q':    # Quit the script
             print("Exiting script.")
             break
