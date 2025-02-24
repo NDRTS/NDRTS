@@ -16,22 +16,23 @@ def camera_publisher(topic_name='/camera/image_raw'):
     image_pub = rospy.Publisher(topic_name, Image, queue_size=30)
     
     # Use a GStreamer pipeline to access the camera hardware efficiently.
-    # gst_pipeline = (
-    #     "v4l2src device=/dev/video0 ! "
-    #     "video/x-raw, width=640, height=480, framerate=30/1 ! "
-    #     "videoconvert ! "
-    #     "video/x-raw, format=BGR ! "
-    #     "appsink"
-    # )
-
     gst_pipeline = (
-        "nvarguscamerasrc sensor-id=0 ! "
-        "video/x-raw(memory:NVMM), width=1920, height=1080, framerate=30/1 ! "
-        "nvvidconv flip-method=0 ! "
-        "video/x-raw, width=960, height=540, format=(string)BGRx ! "
+        "v4l2src device=/dev/video0 ! "
+        "video/x-raw, format=YUY2, width=640, height=480, framerate=30/1 ! "
         "videoconvert ! "
-        "video/x-raw, format=(string)BGR ! appsink"
+        "video/x-raw, format=BGR ! "
+        "appsink max-buffers=1 drop=true sync=false"
     )
+
+
+    # gst_pipeline = (
+    #     "nvarguscamerasrc sensor-id=0 ! "
+    #     "video/x-raw(memory:NVMM), width=1920, height=1080, framerate=30/1 ! "
+    #     "nvvidconv flip-method=0 ! "
+    #     "video/x-raw, width=960, height=540, format=(string)BGRx ! "
+    #     "videoconvert ! "
+    #     "video/x-raw, format=(string)BGR ! appsink"
+    # )
 
     cap = cv2.VideoCapture(gst_pipeline, cv2.CAP_GSTREAMER)
     
