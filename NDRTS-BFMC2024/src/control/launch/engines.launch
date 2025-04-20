@@ -4,4 +4,16 @@
     
     <!-- Launch the Python script -->
     <node pkg="control" type="enginess.py" name="engines_node" output="screen"/>
+
+    <node pkg="control" type="control.py" name="control_node" output="screen"/>
+    
+    <node pkg="control" type="battery_monitor.py" name="battery_monitor_node" output="screen">
+        <param name="serial_port" value="/dev/ttyACM0"/>
+        <param name="baudrate" value="19200"/>
+    </node>
+
+    <node pkg="control" type="stop_lanekeeping_manager.py" name="stop_lanekeeping_manager_node" output="screen" />
+
+    
+    <node pkg="control" type="monitor_scan.py" name="monitor_scan" output="screen" />
 </launch>

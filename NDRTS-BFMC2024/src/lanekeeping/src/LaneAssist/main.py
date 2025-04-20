@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 import rospy
+import base64
 from sensor_msgs.msg import Image
-from std_msgs.msg import Int32
+from std_msgs.msg import Int32, String  # New topic for Base64 images
 from cv_bridge import CvBridge
 import cv2
 import time
@@ -12,6 +13,7 @@ from src.LaneDetection.detect import LaneDetection
 
 stop_lanekeeping_value = 0
 lane_viz_pub = None  # We'll initialize in main
+lane_viz_base64_pub = None  # New publisher for Base64 images
 
 # Define these variables globally so callbacks can access them:
 real_world_example = True
@@ -25,7 +27,7 @@ def stop_lanekeeping_callback(msg):
 
 def image_callback(msg):
     global bridge, lk, ld, real_world_example, skipped_frames, frames_used, time_sum
-    global stop_lanekeeping_value, lane_viz_pub
+    global stop_lanekeeping_value, lane_viz_pub, lane_viz_base64_pub
 
     if stop_lanekeeping_value == 1:
         return  # Stop processing if stop_lanekeeping_value is 1
@@ -58,12 +60,21 @@ def image_callback(msg):
         # cv2.imshow('lk', annotated_frame)
         # cv2.waitKey(1)
 
+        # ✅ Convert to Base64 and publish on a new topic
+        _, jpeg_image = cv2.imencode('.jpg', annotated_frame)
+        base64_str = base64.b64encode(jpeg_image).decode("utf-8")
+        
+        lane_viz_base64_pub.publish(base64_str)  # Publish Base64 image as string
+        
+        # rospy.loginfo("📡 Published Base64 Image to /lane_detection_viz_base64")
+
 def main():
-    global lane_viz_pub, bridge, lk, ld
+    global lane_viz_pub, lane_viz_base64_pub, bridge, lk, ld
     rospy.init_node('lane_detection_node')
 
     bridge = CvBridge()
     lane_viz_pub = rospy.Publisher("/lane_detection_viz", Image, queue_size=1)
+    lane_viz_base64_pub = rospy.Publisher("/lane_detection_viz_base64", String, queue_size=1)  # New
 
     camera = "455"
     lk = LaneKeeping(640, 480, logging.getLogger('Root logger'), camera)

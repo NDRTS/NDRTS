@@ -1,6 +1,5 @@
-// VideoCenter.jsx
 import React from 'react';
-import { Box, Text } from '@mantine/core';
+import { Box, Text, Image } from '@mantine/core';
 import { createStyles } from '@mantine/styles';
 
 const useStyles = createStyles((theme) => ({
@@ -27,18 +26,27 @@ const useStyles = createStyles((theme) => ({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    image: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover', // Keep aspect ratio
+        borderRadius: theme.radius.md,
+    },
 }));
 
-function VideoCenter({ leftDistance, rightDistance }) {
+function VideoCenter({ leftDistance, rightDistance, videoFeed }) {
     const { classes } = useStyles();
-
     return (
         <>
             <Text className={classes.distanceTextLeft}>{leftDistance}</Text>
             <Text className={classes.distanceTextRight}>{rightDistance}</Text>
 
             <Box className={classes.videoFeed}>
-                <Text align="center">Video Feed Here</Text>
+                {videoFeed ? (
+                    <Image src={videoFeed} className={classes.image} alt="Lane Detection" />
+                ) : (
+                    <Text align="center">Waiting for Video...</Text>
+                )}
             </Box>
         </>
     );

@@ -12,17 +12,17 @@ latest_scan = None
 latest_averages = {}
 
 # Control parameters (in centimeters)
-TARGET_LEFT = 40.0   # desired distance on the left side
+TARGET_LEFT = 55.0   # desired distance on the left side
 TARGET_RIGHT = 25.0  # desired distance on the right side
-MIN_VALID_CM = 30.0  # lower bound (too close)
+MIN_VALID_CM = 20.0  # lower bound (too close)
 MAX_VALID_CM = 80.0  # upper bound (too far)
 K = 1                # proportional gain
 
 # Maximum steering angle in degrees
-MAX_STEER_DEG = 20.0
+MAX_STEER_DEG = 17.0
 
 # Smoothing parameters
-MAX_STEER_STEP = 1.0       # maximum change (in degrees) allowed per update
+MAX_STEER_STEP = 4.0       # maximum change (in degrees) allowed per update
 last_correction = 0.0      # global variable to store the last steering command
 
 # Global publisher for stopping lane keeping; will be initialized in lidar_monitor()
@@ -36,7 +36,7 @@ def send_data(steer):
     Positive correction means steer right, negative means steer left.
     """
     pub = rospy.Publisher('/direction_lane', Float32, queue_size=10)
-    rospy.loginfo("Sending steering correction: %d°", steer)
+    # rospy.loginfo("Sending steering correction: %d°", steer)
     pub.publish(steer)
 
 def scan_callback(scan):
@@ -72,21 +72,24 @@ def process_scan(scan, publish=True):
     global latest_averages
     latest_averages = averages.copy()
 
+    if averages.get(180) is not None and distance_front_pub is not None:
+        distance_front_pub.publish(averages[180])
+
     # For steering, we care about the left (90°) and right (-90°) measurements.
     if averages.get(90) is not None and averages.get(-90) is not None:
         # In your configuration, right reading is at 90° and left at -90°.
         right_cm = averages[90]
         left_cm = averages[-90]
-        rospy.loginfo("Left: %.2f cm, Right: %.2f cm", left_cm, right_cm)
+        # rospy.loginfo("Left: %.2f cm, Right: %.2f cm", left_cm, right_cm)
         
         total = left_cm + right_cm
-        
+
         # Check the condition: if total is less than 100 cm, we want to stop lane keeping.
         if total < 100:
             # Publish stop command only if not already stopped.
             if lane_keeping_stopped is not True:
                 stop_lanekeeping_pub.publish(1)
-                rospy.loginfo("Published stop command (1) because total (%.2f cm) < 100 cm", total)
+                # rospy.loginfo("Published stop command (1) because total (%.2f cm) < 100 cm", total)
                 lane_keeping_stopped = True
             # Process steering even if lane-keeping is stopped? (Your logic might skip corrections here.)
             # For now, we continue with corrections even if stopping is triggered.
@@ -106,28 +109,29 @@ def process_scan(scan, publish=True):
             
             if publish:
                 send_data(correction)
-            rospy.loginfo("Computed correction: %d° (error_left: %.2f, error_right: %.2f)",
-                          correction, error_left, error_right)
+            # rospy.loginfo("Computed correction: %d° (error_left: %.2f, error_right: %.2f)",
+            #               correction, error_left, error_right)
         else:
             # Only publish a resume command if previously stopped.
             if lane_keeping_stopped is not False:
                 stop_lanekeeping_pub.publish(0)
-                rospy.loginfo("Published resume command (0) because total (%.2f cm) >= 100 cm", total)
+                # rospy.loginfo("Published resume command (0) because total (%.2f cm) >= 100 cm", total)
                 lane_keeping_stopped = False
-            rospy.loginfo("Total distance (%.2f cm) >= 100 cm. No steering command sent.", total)
-    else:
-        rospy.loginfo("Side measurements (left/right) not available.")
-    
+            # rospy.loginfo("Total distance (%.2f cm) >= 100 cm. No steering command sent.", total)
+    # else:
+        # rospy.loginfo("Side measurements (left/right) not available.")
+
     return averages
 
 def lidar_monitor():
-    global stop_lanekeeping_pub
+    global stop_lanekeeping_pub, distance_front_pub
     rospy.init_node('lidar_monitor', anonymous=True)
     rospy.Subscriber("/scan", LaserScan, scan_callback)
     # Initialize the stop lane-keeping publisher after node initialization.
-    stop_lanekeeping_pub = rospy.Publisher('/stop_lanekeeping', Int32, queue_size=10)
+    stop_lanekeeping_pub = rospy.Publisher('/stop_lanekeeping_cmd', Int32, queue_size=10)
+    distance_front_pub = rospy.Publisher('/distance_front', Float32, queue_size=10)
     rospy.loginfo("Lidar monitor started.")
-    
+
     rate = rospy.Rate(50)  # update at 50 Hz
     while not rospy.is_shutdown():
         if latest_scan is not None:
@@ -153,9 +157,9 @@ def exit_listener():
             os._exit(0)
 
 if __name__ == '__main__':
-    exit_thread = threading.Thread(target=exit_listener)
-    exit_thread.daemon = True
-    exit_thread.start()
+    # exit_thread = threading.Thread(target=exit_listener)
+    # exit_thread.daemon = True
+    # exit_thread.start()
     
     try:
         lidar_monitor()

@@ -1,0 +1,7 @@
+<launch>
+  <node name="dashboard_runner"
+        pkg="dashboard"
+        type="start_dashboard.sh"
+        output="screen"
+        launch-prefix="bash" />
+</launch>

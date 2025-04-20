@@ -27,7 +27,7 @@ with open("/home/jetson/Desktop/NDRTS/NDRTS-BFMC2024/src/vision/src/ssd/models/v
     class_labels = [line.strip() for line in f.readlines()]
 
 # Inițializează rețeaua de detecție
-net = jetson_inference.detectNet(argv=["--model=/home/jetson/Desktop/NDRTS/NDRTS-BFMC2024/src/vision/src/ssd/models/mb2-ssd-lite.onnx", 
+net = jetson_inference.detectNet(argv=["--model=/home/jetson/Desktop/NDRTS/NDRTS-BFMC2024/src/vision/src/ssd/models/mb2-ssd-lite-Epoch-135-semafor.onnx", 
                                        "--labels=/home/jetson/Desktop/NDRTS/NDRTS-BFMC2024/src/vision/src/ssd/models/voc-model-labels.txt", 
                                        "--input-blob=input_0", "--output-cvg=scores", "--output-bbox=boxes"], threshold=0.5)
 
@@ -42,7 +42,7 @@ def image_callback(msg):
 
         # Delimitarea regiunii de interes (ROI)
         height, width, _ = cv_image.shape
-        roi_start_x = int(width * 0.7)
+        roi_start_x = int(width * 0.5)
         roi_end_x = width - 1  
         roi_start_y = 0  
         roi_end_y = height - 1  

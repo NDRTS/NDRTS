@@ -8,7 +8,7 @@ import tty
 rospy.init_node('speed_and_steer_controller', anonymous=True)
 speed_pub = rospy.Publisher('/speed', Float32, queue_size=10)
 steer_pub = rospy.Publisher('/direction_lane', Float32, queue_size=10)
-stop_lanekeeping_pub = rospy.Publisher('/stop_lanekeeping', Int32, queue_size=10)
+stop_lanekeeping_pub = rospy.Publisher('/stop_lanekeeping_cmd', Int32, queue_size=10)
 
 # Function to read a single keypress from the terminal
 def get_key():

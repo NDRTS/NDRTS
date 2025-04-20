@@ -8,4 +8,5 @@
     <!-- <include file="$(find sensors)/launch/sensors.launch"/>  -->
     <include file="$(find control)/launch/engines.launch"/>
     <!-- Add more includes for additional launch files -->
+    <!-- <include file="$(find dashboard)/launch/dashboard.launch"/> -->
 </launch>

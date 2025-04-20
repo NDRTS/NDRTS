@@ -4,17 +4,22 @@ import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
+import base64  # 👈 Add this import at the top
+from std_msgs.msg import String  # 👈 Also needed for the Base64 publisher
 
 def camera_publisher(topic_name='/camera/image_raw'):
     # Initialize ROS node
     rospy.init_node('camera_publisher', anonymous=True)
-    
+
     # Create a CvBridge instance to convert between ROS and OpenCV images
     bridge = CvBridge()
     
     # Create a ROS publisher for the image topic
     image_pub = rospy.Publisher(topic_name, Image, queue_size=30)
-    
+
+    # ✅ Add a new Base64 publisher for raw images
+    base64_pub = rospy.Publisher("/raw_image_base64", String, queue_size=10)
+
     # Use a GStreamer pipeline to access the camera hardware efficiently.
     gst_pipeline = (
         "v4l2src device=/dev/video0 ! "
@@ -39,9 +44,9 @@ def camera_publisher(topic_name='/camera/image_raw'):
     if not cap.isOpened():
         rospy.logerr("Camera cannot be opened.")
         return
-    
+
     rospy.loginfo(f"Publishing images on topic: {topic_name}")
-    
+
     rate = rospy.Rate(10)  # Publish at 10Hz
     while not rospy.is_shutdown():
         ret, frame = cap.read()
@@ -49,15 +54,10 @@ def camera_publisher(topic_name='/camera/image_raw'):
             rospy.logerr("Error reading frame from camera.")
             break
 
-        # --- GPU Processing (optional) ---
-        # Upload the frame to GPU memory
+        # === GPU & Grayscale Processing ===
         gpu_frame = cv2.cuda_GpuMat()
         gpu_frame.upload(frame)
-        
-        # Convert the frame to grayscale using the GPU
         gpu_gray = cv2.cuda.cvtColor(gpu_frame, cv2.COLOR_BGR2GRAY)
-        
-        # Download the processed image back to host memory
         processed_frame = gpu_gray.download()
         # ----------------------
         
@@ -67,13 +67,22 @@ def camera_publisher(topic_name='/camera/image_raw'):
         # -------------------------
         
         # Convert the adjusted frame into a ROS Image message (using mono8 encoding)
+
+        # === Publish to /camera/image_raw (mono8) ===
         img_msg = bridge.cv2_to_imgmsg(processed_frame, encoding='mono8')
         img_msg.header.stamp = rospy.Time.now()
         img_msg.header.frame_id = "camera_frame"
         image_pub.publish(img_msg)
-        
+
+        # === Encode JPEG and Base64 ===
+        _, jpeg_img = cv2.imencode('.jpg', frame)  # original color frame
+        base64_str = base64.b64encode(jpeg_img).decode('utf-8')
+
+        # === Publish to /camera/image_raw ===
+        base64_pub.publish(base64_str)
+
         rate.sleep()
-    
+
     cap.release()
 
 if __name__ == '__main__':

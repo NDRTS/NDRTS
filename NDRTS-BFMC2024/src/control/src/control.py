@@ -1,164 +1,140 @@
 #!/usr/bin/env python3
+import signal
+import time
 import rospy
 from std_msgs.msg import String, Float32, Int32
-from signs import *
-import signal
+from signs import *  # your maneuver helpers
 
-# Definire publisher global pentru oprirea menținerii benzii
-stop_lanekeeping_publisher = None
+# ---------------------------------------------------------------------------
+# Globals from subscribed topics
+# ---------------------------------------------------------------------------
+dist_front = 9999.0
+line = 0
 
-# Callback pentru actualizarea distanței frontale
-def dist_front_callback(data):
+def dist_front_callback(msg: Float32):
     global dist_front
-    dist_front = data.data
+    dist_front = msg.data
 
-# Callback pentru actualizarea distanței laterale
-def dist_lateral_callback(data):
-    global dist_lateral
-    dist_lateral = data.data
-
-# Callback pentru actualizarea liniei detectate
-def line_callback(data):
+def line_callback(msg: Int32):
     global line
-    line = data.data
+    line = msg.data
 
-# Inițializare publisher pentru oprirea navigației
-stop_nav_pub = rospy.Publisher('/stop_nav', Int32, queue_size=10)
+# ---------------------------------------------------------------------------
+# Publisher for stopping lane keeping
+# ---------------------------------------------------------------------------
+stop_nav_pub = rospy.Publisher('/stop_lanekeeping_cmd', Int32, queue_size=10)
 
-# Funcție pentru trimiterea semnalului de oprire
 def send_stop_signal():
-    rospy.loginfo("Sending STOP signal")
-    stop_msg = Int32()
-    stop_msg.data = 1
-    stop_nav_pub.publish(stop_msg)
+    rospy.loginfo("🚨 Sending STOP signal")
+    stop_nav_pub.publish(Int32(data=1))
 
-# Funcție pentru trimiterea semnalului de reluare
 def send_resume_signal():
-    rospy.loginfo("Sending RESUME signal")
-    resume_msg = Int32()
-    resume_msg.data = 0
-    stop_nav_pub.publish(resume_msg)
+    rospy.loginfo("▶️ Sending RESUME signal")
+    stop_nav_pub.publish(Int32(data=0))
 
-# Clasă pentru detectarea semnelor de circulație
+# ---------------------------------------------------------------------------
+# TrafficSignDetector class with cooldown logic
+# ---------------------------------------------------------------------------
 class TrafficSignDetector:
     def __init__(self):
-        self.detection_counts = {}
-        self.threshold = 2  # Prag pentru detectare sigură
-        self.time_window = 5  # Fereastră de timp pentru detecții
-        self.remove_timeout = 15  # Timeout pentru eliminarea detecțiilor vechi
+        self.votes = {}  # cleaned_label -> {count, last}
+        self.cooldown_until = {}  # cleaned_label -> time
 
-    # Funcție pentru actualizarea detecțiilor
-    def update_detection(self, label):
-        current_time = rospy.get_time()
-        global stop_lanekeeping_publisher
-        if label in self.detection_counts:
-            self.detection_counts[label]['count'] += 1
-            self.detection_counts[label]['last_detection_time'] = current_time
-            # Acțiuni pentru diferite semne de circulație
-            if self.detection_counts[label]['count'] == self.threshold:
-                if label == "Stopsign":
-                    send_stop_signal()
-                    STOP_SIGN()
-                    time.sleep(1.5)
-                    send_resume_signal()
-                if label == "Crosswalksign":
-                    cross = True
-                    start_time = rospy.get_time()
-                    while cross:
-                        if dist_front <= 30:
-                            CROSSWALK_WITH_PEDESTRIAN()
-                        elif dist_front >= 40:
-                            CROSSWALK_WITHOUT_PEDESTRIAN()
-                        current_time = rospy.get_time()
-                        if current_time - start_time >= 10:
-                            break
-                if label == "Prioritysign":
-                    PRIORITY_SIGN()
-                if label == "Highwayentrancesign":
-                    HIGHWAY_ENTER()
-                if label == "Highwayexitsign":
-                    HIGHWAY_EXIT()
-                elif label == "Round-aboutsign" and line==1:
-                    send_stop_signal()
-                    ROUNDABOUTSIGN()
-                    send_resume_signal()       
-                elif label == "Parkingsign":
-                    print("Parkinsign detected")
-                    time.sleep(5) 
-                    dist_lateral_1 = dist_lateral 
-                    time.sleep(5)  
-                    dist_lateral_2 = dist_lateral  
-                    send_stop_signal()
-                    if dist_lateral_1 >= 15 and dist_lateral_2 <= 15:
-                        print("First parking space is available")
-                        PARKING_SPACE_1()
-                    else:
-                        print("First parking space is not available")
-                        send_resume_signal()
-                else:
-                    rospy.loginfo(f"Detected {label}")
-        else:
-            self.detection_counts[label] = {'count': 1, 'last_detection_time': current_time}
-     
-    # Verifică detecțiile adevărate
-    def check_for_true_detections(self):
-        current_time = rospy.get_time()
-        true_detections = []
-        for label, info in self.detection_counts.items():
-            if info['count'] >= self.threshold and current_time - info['last_detection_time'] <= self.time_window:
-                true_detections.append(label)
-        return true_detections
+        self.threshold = 3
+        self.time_window = 1.0
+        self.remove_timeout = 10.0
 
-    # Elimină detecțiile vechi
+        self.cooldown_secs = {
+            "Stopsign": 20.0,
+            "Parkingsign": 20.0,
+            "Round-aboutsign": 5.0,
+            "Crosswalksign": 3.0,
+            "Prioritysign": 3.0
+        }
+
+    def update_detection(self, raw_label: str):
+        now = rospy.get_time()
+        # label = raw_label.strip().replace(",", "")
+        label = raw_label
+
+        if label in self.cooldown_until and now < self.cooldown_until[label]:
+            return
+
+        if label not in self.votes:
+            self.votes[label] = {'count': 0, 'last': now}
+        self.votes[label]['count'] += 1
+        self.votes[label]['last'] = now
+
+        if self.votes[label]['count'] >= self.threshold:
+            rospy.loginfo(f"✅ Confirmed detection: {label}")
+            self._handle_maneuver(label)
+            self.cooldown_until[label] = now + self.cooldown_secs.get(label, 5.0)
+            self.votes.pop(label, None)
+
     def remove_old_detections(self):
-        current_time = rospy.get_time()
-        labels_to_remove = []
-        for label, info in self.detection_counts.items():
-            if current_time - info['last_detection_time'] > self.remove_timeout:
-                labels_to_remove.append(label)
-        for label in labels_to_remove:
-            del self.detection_counts[label]
+        now = rospy.get_time()
+        for label in list(self.votes):
+            if now - self.votes[label]['last'] > self.remove_timeout:
+                self.votes.pop(label)
 
-    # Resetează contorul de detecții
-    def reset_counts(self):
-        self.detection_counts = {}
+    def _handle_maneuver(self, label: str):
+        if label == "Stopsign":
+            STOP_SIGN()
+            time.sleep(1.5)
 
-# Callback pentru procesarea datelor de la semnele de circulație detectate
-def callback(data):
-    global pedestrian
-    global stai
-    label = data.data
-    pedestrian=data.data
-    if pedestrian == "Pedestrian":
-        stai = True
-    else: 
-        stai = False
+        elif label == "Crosswalksign":
+            start = rospy.get_time()
+            while rospy.get_time() - start < 10:
+                if dist_front <= 30:
+                    CROSSWALK_WITH_PEDESTRIAN()
+                else:
+                    CROSSWALK_WITHOUT_PEDESTRIAN()
+                rospy.sleep(0.25)
 
-    detector.update_detection(label)
+        elif label == "Prioritysign":
+            PRIORITY_SIGN()
 
-# Handler pentru semnalele de întrerupere
+        elif label == "Round-aboutsign" and line == 1:
+            send_stop_signal()
+            ROUNDABOUTSIGN()
+            send_resume_signal()
+
+        elif label == "Parkingsign":
+            send_stop_signal()
+            time.sleep(1.5)
+            PARALLEL_PARK_LEFT()
+
+        else:
+            rospy.loginfo(f"⚠️ No handler defined for: {label}")
+
+# ---------------------------------------------------------------------------
+# ROS callbacks and main loop
+# ---------------------------------------------------------------------------
+detector = TrafficSignDetector()
+
+def sign_callback(msg: String):
+    raw = msg.data
+    cleaned = raw.strip().replace(",", "")
+    rospy.loginfo(f"🔤 Raw label: '{raw}' → Cleaned: '{cleaned}'")
+    detector.update_detection(cleaned)
+
 def signal_handler(sig, frame):
-    global stop_lanekeeping_publisher
-    if stop_lanekeeping_publisher is not None:
-        stop_lanekeeping_publisher.publish(0)
-    rospy.signal_shutdown("Ctrl+C pressed")
+    send_resume_signal()
+    rospy.signal_shutdown("Ctrl-C pressed")
 
-# Funcția principală de inițializare a nodului ROS
 def main():
     rospy.init_node('sign_publisher', anonymous=True)
 
-if __name__ == '__main__':
-    main()
-    detector = TrafficSignDetector()
-    rospy.Subscriber('/detected_class', String, callback)
+    rospy.Subscriber('/detected_class', String, sign_callback)
     rospy.Subscriber('/distance_front', Float32, dist_front_callback)
-    rospy.Subscriber('/distance_lateral', Float32, dist_lateral_callback)
     rospy.Subscriber('/line', Int32, line_callback)
-    stop_lanekeeping_publisher = rospy.Publisher('/stop_nav', Int32, queue_size=10)
+
     signal.signal(signal.SIGINT, signal_handler)
-    rate = rospy.Rate(1)  # 1 Hz
+
+    rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         detector.remove_old_detections()
         rate.sleep()
 
-    rospy.spin()
+if __name__ == '__main__':
+    main()
