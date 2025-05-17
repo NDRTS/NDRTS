@@ -97,7 +97,7 @@ net.load(args.input)
 net.to(device)
 net.eval()
 # Creează un input fictiv pentru export
-dummy_input = torch.randn(args.batch-size, 3, args.resolution, args.resolution).cuda()
+dummy_input = torch.randn(args.batch_size, 3, args.resolution, args.resolution).cuda()
 # Setează calea fișierului de ieșire dacă nu este specificată
 if not args.output:
     args.output = args.net + '.onnx'

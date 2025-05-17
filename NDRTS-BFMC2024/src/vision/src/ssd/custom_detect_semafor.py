@@ -19,11 +19,11 @@ bridge = CvBridge()
 
 # Load class labels
 class_labels = []
-with open("/home/jetson/Desktop/NDRTS/src/vision/src/ssd/models/voc-model-labels.txt", "r") as f:
+with open("/home/jetson/Desktop/NDRTS/NDRTS-BFMC2024/src/vision/src/ssd/models/voc-model-labels.txt", "r") as f:
     class_labels = [line.strip() for line in f.readlines()]
 
 # load the object detection model
-net = jetson_inference.detectNet(argv=["--model=/home/jetson/Desktop/NDRTS/src/vision/src/ssd/models/mb2-ssd-lite.onnx", "--labels=/home/jetson/Desktop/NDRTS/src/vision/src/ssd/models/voc-model-labels.txt", "--input-blob=input_0", "--output-cvg=scores", "--output-bbox=boxes"], threshold=0.5)
+net = jetson_inference.detectNet(argv=["--model=/home/jetson/Desktop/NDRTS/NDRTS-BFMC2024/src/vision/src/ssd/models/mb2-ssd-lite.onnx", "--labels=/home/jetson/Desktop/NDRTS/NDRTS-BFMC2024/src/vision/src/ssd/models/voc-model-labels.txt", "--input-blob=input_0", "--output-cvg=scores", "--output-bbox=boxes"], threshold=0.5)
 # display = jetson_utils.videoOutput("display://0")  # 'my_video.mp4' for file
 
 # Define a callback function to handle incoming images
