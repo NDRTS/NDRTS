@@ -10,6 +10,8 @@ export default function useROSData() {
         ram: 0,
         battery: 0,
         laneDetectionOn: true,
+        waypoints: [],
+        car_position: null,
     });
 
     const [ws, setWs] = useState(null);
@@ -25,7 +27,7 @@ export default function useROSData() {
 
         socket.onmessage = (event) => {
             const message = JSON.parse(event.data);
-            console.log("📩 WebSocket received:", message);
+            // console.log("📩 WebSocket received:", message);
 
             setData((prev) => {
                 if (message.type === "system") {
@@ -34,11 +36,17 @@ export default function useROSData() {
                         cpu: message.data.cpu,
                         ram: message.data.ram,
                     };
-                } else if (message.type === "detected_class") {
-                    // ✅ Reset detected_class after 10 seconds
+                }
+                else if (message.type === "waypoints") {
+                    return { ...prev, waypoints: message.data };
+                }
+                else if (message.type === "car_position") {
+                    return { ...prev, car_position: message.data };
+                }
+                else if (message.type === "detected_class") {
                     setTimeout(() => {
                         setData((prevData) => ({ ...prevData, detected_class: null }));
-                        console.log("🕒 Cleared detected_class after 10s");
+                        console.log("🕒 Cleared detected_class after 5s");
                     }, 10000); // 10 seconds
                     return {
                         ...prev,

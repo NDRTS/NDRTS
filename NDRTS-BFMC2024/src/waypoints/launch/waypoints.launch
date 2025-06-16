@@ -1,0 +1,13 @@
+<launch>
+  <!-- Override graphml_file if you move it elsewhere -->
+  <node pkg="waypoints"
+        type="graphml_to_waypoints.py"
+        name="graphml_to_waypoints"
+        output="screen">
+    <param name="graphml_file"
+           value="$(find waypoints)/scripts/traseu.graphml"/>
+  </node>
+
+    <node pkg="waypoints" type="gps_serial_publisher.py" name="gps_serial_publisher" output="screen">
+  </node>
+</launch>

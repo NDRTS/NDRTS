@@ -7,6 +7,7 @@
     <include file="$(find rplidar_ros)/launch/rplidar_a2m8.launch" />
     <!-- <include file="$(find sensors)/launch/sensors.launch"/>  -->
     <include file="$(find control)/launch/engines.launch"/>
+    <include file="$(find waypoints)/launch/waypoints.launch"/>
     <!-- Add more includes for additional launch files -->
     <!-- <include file="$(find dashboard)/launch/dashboard.launch"/> -->
 </launch>

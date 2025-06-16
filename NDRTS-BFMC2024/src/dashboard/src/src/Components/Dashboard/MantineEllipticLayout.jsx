@@ -6,6 +6,7 @@ import SideIndicators from './SideIndicators';
 import VideoCenter from './VideoCenter';
 import BottomBar from './BottomBar';
 import useROSData from '../../hooks/useROSData';
+import WaypointsMap from './WaypointsMap';
 
 const useStyles = createStyles((theme) => ({
     dashboard: {
@@ -45,6 +46,23 @@ const useStyles = createStyles((theme) => ({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    centerStack: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',            // keep children inside
+    },
+    mapPane: {
+        flex: '0 0 50%',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+    },
+    videoPane: {
+        flex: '0 0 50%',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+    },
+
     bottomBar: {
         height: '10%',
         display: 'flex',
@@ -57,7 +75,7 @@ const useStyles = createStyles((theme) => ({
 function MantineEllipticLayout() {
     const { classes } = useStyles();
     const { data, sendToggleLaneDetection, sendAdjustSpeed } = useROSData();
-    console.log('MantineEllipticLayout', data);
+    // console.log('MantineEllipticLayout', data);
 
     return (
         <Container fluid className={classes.dashboard}>
@@ -84,10 +102,16 @@ function MantineEllipticLayout() {
                     <TopBar detected_class={data.detected_class} />
                 </Box>
 
-                {/* Video Center */}
-                <Box className={classes.videoCenter}>
-                    <VideoCenter videoFeed={data.camera_feed} />
+                {/* Video Feed */}
+                <Box className={classes.centerStack}>
+                    <Box className={classes.mapPane}>
+                        <WaypointsMap waypoints={data.waypoints} carPos={data.car_position} />
+                    </Box>
+                    <Box className={classes.videoPane}>
+                        <VideoCenter videoFeed={data.camera_feed} />
+                    </Box>
                 </Box>
+
 
                 {/* Bottom Bar */}
                 <Box className={classes.bottomBar}>
