@@ -1,0 +1,13 @@
+colcon build && colcon build --symlink-install
+
+source install/setup.bash
+
+ros2 launch ndrts_launch brain_launch.py
+
+# terminal 2 – dashboard backend
+cd src/dashboard/server
+node ros_server.js         # (needs rclnodejs built correctly)
+
+# terminal 3 – dashboard front-end
+cd src/dashboard/webapp/dashboard-ui
+npm run dev -- --host

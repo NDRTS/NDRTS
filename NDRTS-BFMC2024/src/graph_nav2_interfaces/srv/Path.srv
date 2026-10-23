@@ -1,0 +1,7 @@
+# Request
+string start_id
+string goal_id
+string[] waypoint_ids
+---
+# Response
+geometry_msgs/PoseStamped[] poses
