@@ -1,0 +1,34 @@
+from setuptools import find_packages, setup
+from glob import glob
+import os
+
+package_name = 'control'
+
+setup(
+    name=package_name,
+    version='0.0.0',
+    packages=find_packages(exclude=['test']),
+    data_files=[
+        ('share/ament_index/resource_index/packages',
+            ['resource/' + package_name]),
+        ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'),
+         glob('launch/*.py')),
+    ],
+    install_requires=['setuptools'],
+    zip_safe=True,
+    maintainer='ndrts',
+    maintainer_email='ndrts@todo.todo',
+    description='TODO: Package description',
+    license='MIT',
+    tests_require=['pytest'],
+    entry_points={
+        'console_scripts': [
+            'engine_node = control.engine_node:main',
+            'control_node = control.control_node:main',
+            'battery_monitor_node = control.battery_monitor_node:main',
+            'stop_lanekeeping_manager_node = control.stop_lanekeeping_manager_node:main',
+            'monitor_scan_node = control.monitor_scan_node:main',
+        ],
+    },
+)

@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>graph_nav2_interfaces</name>
+  <version>0.1.0</version>
+  <description>Custom interfaces for graph-based navigation</description>
+
+  <maintainer email="ndrts@example.com">ndrts</maintainer>
+  <license>Apache-2.0</license>
+
+  <!-- build tool -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- dependencies used inside .srv/.msg files -->
+  <depend>geometry_msgs</depend>
+
+  <!-- interface generation -->
+  <build_depend>rosidl_default_generators</build_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
+<export>
+  <build_type>ament_cmake</build_type>
+</export>
+</package>

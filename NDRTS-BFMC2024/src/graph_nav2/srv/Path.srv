@@ -1,0 +1,7 @@
+# request
+string  start_id
+string  goal_id
+string[] waypoint_ids   # 0-… arbitrary intermediate nodes
+---
+# response
+geometry_msgs/PoseStamped[] poses
