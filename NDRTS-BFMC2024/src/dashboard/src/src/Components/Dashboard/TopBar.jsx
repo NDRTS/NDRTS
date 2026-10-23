@@ -14,13 +14,14 @@ const useStyles = createStyles((theme) => ({
 
 function TopBar({ detected_class }) {
     const { classes } = useStyles();
-
+    // console.log("detected_class", detected_class);
     return (
         <Box className={classes.topBarContainer}>
             {/* Stop Sign: Initially Hidden */}
             <TrafficSign label="Stop" isVisible={detected_class === "Stopsign,"} />
             <TrafficSign label="Semafor" isVisible={detected_class === "s,"} />
-            <TrafficSign label="Parcare" isVisible={detected_class === "Parkingsign,"} />
+            <TrafficSign label="Parking" isVisible={detected_class === "Parkingsign,"} />
+            <TrafficSign label="Crosswalk" isVisible={detected_class === "Crosswalksign,"} />
         </Box>
     );
 }

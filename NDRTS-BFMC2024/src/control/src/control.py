@@ -5,6 +5,29 @@ import rospy
 from std_msgs.msg import String, Float32, Int32
 from signs import *  # your maneuver helpers
 
+import re                     # NEW – must be above any code that uses it
+
+LABEL_MAP = {                 # NEW – canonical spellings
+    'crosswalksign':  'Crosswalksign',
+    'stopsign':       'Stopsign',
+    'parkingsign':    'Parkingsign',
+    'round-aboutsign':'Round-aboutsign',
+    'prioritysign':   'Prioritysign',
+}
+
+last_label   = None          # the last label we forwarded to the detector
+last_stamp   = 0.0           # when we forwarded it (rospy time, seconds)
+DEDUP_PERIOD = 0.30          # seconds; tweak to make it more/less aggressive
+
+def normalise(raw: str) -> str:          # NEW
+    """
+    Strip everything except letters, make it lowercase,
+    then map to the canonical label if we know it.
+    """
+    token = re.sub(r'[^A-Za-z]', '', raw).lower()
+    return LABEL_MAP.get(token, raw.strip())
+
+
 # ---------------------------------------------------------------------------
 # Globals from subscribed topics
 # ---------------------------------------------------------------------------
@@ -46,10 +69,10 @@ class TrafficSignDetector:
 
         self.cooldown_secs = {
             "Stopsign": 20.0,
-            "Parkingsign": 20.0,
-            "Round-aboutsign": 5.0,
-            "Crosswalksign": 3.0,
-            "Prioritysign": 3.0
+            "Parkingsign": 40.0,
+            "Round-aboutsign": 15.0,
+            "Crosswalksign": 15.0,
+            "Prioritysign": 15.0
         }
 
     def update_detection(self, raw_label: str):
@@ -112,11 +135,24 @@ class TrafficSignDetector:
 # ---------------------------------------------------------------------------
 detector = TrafficSignDetector()
 
-def sign_callback(msg: String):
-    raw = msg.data
-    cleaned = raw.strip().replace(",", "")
-    rospy.loginfo(f"🔤 Raw label: '{raw}' → Cleaned: '{cleaned}'")
-    detector.update_detection(cleaned)
+def sign_callback(msg: String):                     # ← REPLACE this whole function
+    global last_label, last_stamp
+
+    now   = rospy.get_time()
+    raw   = msg.data
+    label = normalise(raw)          # canonical form, e.g. "Crosswalksign"
+
+    # ── De-duplication ────────────────────────────────────────────────────
+    # Ignore this frame if it's the *same* label we just forwarded AND
+    # it arrived sooner than DEDUP_PERIOD seconds after the previous one.
+    if label == last_label and (now - last_stamp) < DEDUP_PERIOD:
+        return
+
+    # Keep a record of what we forwarded last
+    last_label, last_stamp = label, now
+    rospy.logdebug(f"🔤 Raw '{raw}'  →  Norm '{label}' (fwd)")
+    detector.update_detection(label)
+
 
 def signal_handler(sig, frame):
     send_resume_signal()

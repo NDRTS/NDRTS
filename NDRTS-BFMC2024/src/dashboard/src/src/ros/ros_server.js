@@ -4,8 +4,11 @@ const os = require('os');
 
 const wss = new WebSocket.Server({ port: 8080 });
 
-process.env.ROS_MASTER_URI = "http://localhost:11311";
-process.env.ROS_IP = "192.168.0.103";
+// process.env.ROS_MASTER_URI = "http://192.168.3.204:11311";
+// process.env.ROS_IP = "192.168.3.159";
+
+process.env.ROS_MASTER_URI = "http://192.168.0.100:11311";
+process.env.ROS_IP = "192.168.0.101";
 
 const getSystemUsage = () => ({
     cpu: os.loadavg()[0] * 10,
@@ -78,6 +81,36 @@ async function startROSNode() {
         const percentage = Math.min(Math.max(msg.data * 100, 0), 100);
         sendData({ type: 'battery', data: Math.round(percentage) });
     });
+
+    const waypointsSub = nh.subscribe(
+        '/waypoints', 'nav_msgs/Path',
+        (msg) => {
+            // convert poses to plain {x,y}
+            const points = msg.poses.map(p => ({
+                x: p.pose.position.x,
+                y: p.pose.position.y,
+            }));
+
+            // edge list was packed into header.frame_id after a '|'
+            let edges = [];
+            const parts = msg.header.frame_id.split('|');
+            if (parts.length === 2) {
+                edges = parts[1].split(';')
+                    .map(pair => pair.split(',').map(Number));
+            }
+
+            sendData({ type: 'waypoints', data: { points, edges } });
+        },
+        { tcp: true }    // large messages – force TCPROS
+    );
+
+    nh.subscribe('/car_position', 'geometry_msgs/PointStamped', msg => {
+        sendData({
+            type: 'car_position',
+            data: { x: msg.point.x, y: msg.point.y }
+        });
+    });
+
 
     // ✅ Switch between base64 video feeds depending on stop_lanekeeping value
     nh.subscribe('/stop_lanekeeping', 'std_msgs/Int32', (msg) => {

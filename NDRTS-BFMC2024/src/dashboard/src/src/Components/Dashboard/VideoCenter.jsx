@@ -16,8 +16,8 @@ const useStyles = createStyles((theme) => ({
         fontSize: 18,
     },
     videoFeed: {
-        width: '60%',
-        height: '60%',
+        width: 'auto',
+        height: '100%',
         backgroundColor: theme.colors.gray[9],
         border: `2px solid ${theme.colors.gray[7]}`,
         borderRadius: theme.radius.md,
@@ -29,7 +29,7 @@ const useStyles = createStyles((theme) => ({
     image: {
         width: '100%',
         height: '100%',
-        objectFit: 'cover', // Keep aspect ratio
+        objectFit: 'contain', // Keep aspect ratio
         borderRadius: theme.radius.md,
     },
 }));
@@ -38,8 +38,8 @@ function VideoCenter({ leftDistance, rightDistance, videoFeed }) {
     const { classes } = useStyles();
     return (
         <>
-            <Text className={classes.distanceTextLeft}>{leftDistance}</Text>
-            <Text className={classes.distanceTextRight}>{rightDistance}</Text>
+            {/* <Text className={classes.distanceTextLeft}>{leftDistance}</Text>
+            <Text className={classes.distanceTextRight}>{rightDistance}</Text> */}
 
             <Box className={classes.videoFeed}>
                 {videoFeed ? (
